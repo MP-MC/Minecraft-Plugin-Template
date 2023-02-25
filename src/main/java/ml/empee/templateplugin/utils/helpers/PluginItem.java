@@ -22,6 +22,7 @@ public class PluginItem {
     this.item = item;
     this.version = version;
 
+    item.plugin(plugin);
     item.setNbt(name, version);
   }
 

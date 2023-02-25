@@ -1,13 +1,16 @@
 package ml.empee.templateplugin.utils.helpers;
 
-import java.util.Locale;
-import java.util.logging.Level;
 import lombok.Getter;
 import lombok.Setter;
 import ml.empee.ioc.Bean;
 import ml.empee.templateplugin.TemplatePlugin;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.Locale;
+import java.util.logging.Level;
 
 /**
  * This class allow you to easily log messages.
@@ -15,35 +18,47 @@ import org.bukkit.command.CommandSender;
 
 public final class Logger implements Bean {
 
-  @Getter
-  @Setter
+  @Getter @Setter
   private String prefix;
-  @Getter
-  @Setter
+  @Getter @Setter
   private boolean isDebugEnabled;
-
   @Setter
   private java.util.logging.Logger consoleLogger;
+  private final TranslationManager translationManager;
 
-  public Logger(TemplatePlugin plugin) {
+  public Logger(JavaPlugin plugin, TranslationManager translationManager) {
+    this.translationManager = translationManager;
+
     prefix = TemplatePlugin.PREFIX;
     consoleLogger = plugin.getLogger();
   }
 
-  private void log(CommandSender player, String message, ChatColor color, Object... args) {
+  public void log(CommandSender sender, String message, Object... args) {
     message = String.format(message, args);
 
     message = message.replace("\n", "\n&r");
-    message = (prefix + message).replace("&r", color.toString());
+    message = prefix + message;
     if (message.endsWith("\n")) {
       message += " ";
     }
 
     message = message.replace("\t", "    ");
 
-    player.sendMessage(
+    sender.sendMessage(
         ChatColor.translateAlternateColorCodes('&', message).split("\n")
     );
+  }
+
+  public void translatedLog(CommandSender sender, String key, Object... args) {
+    Locale locale = Locale.ENGLISH;
+    if(sender instanceof Player) {
+      String[] language = ((Player) sender).getLocale().split("_");
+      if(language.length == 2) {
+        locale = new Locale(language[0], language[1]);
+      }
+    }
+
+    log(sender, translationManager.getTranslation(key, locale), args);
   }
 
   /** Log to the console a debug message. **/
@@ -67,11 +82,6 @@ public final class Logger implements Bean {
     }
   }
 
-  /** Log an info message to a player. **/
-  public void info(CommandSender player, String message, Object... args) {
-    log(player, message, ChatColor.GRAY, args);
-  }
-
   /** Log to the console a warning message. **/
   public void warning(String message, Object... args) {
     if (consoleLogger.isLoggable(Level.WARNING)) {
@@ -79,20 +89,10 @@ public final class Logger implements Bean {
     }
   }
 
-  /** Log a warning message to a player. **/
-  public void warning(CommandSender player, String message, Object... args) {
-    log(player, message, ChatColor.GOLD, args);
-  }
-
   /** Log to the console an error message. **/
   public void error(String message, Object... args) {
     if (consoleLogger.isLoggable(Level.SEVERE)) {
       consoleLogger.severe(String.format(Locale.ROOT, message, args));
     }
-  }
-
-  /** Log an error message to a player. **/
-  public void error(CommandSender player, String message, Object... args) {
-    log(player, message, ChatColor.RED, args);
   }
 }
